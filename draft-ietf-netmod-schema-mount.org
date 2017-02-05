@@ -40,7 +40,7 @@ the data model starting at a non-root location. For example, YANG
 modules such as "ietf-interfaces" ^RFC7223^ are often defined so as to
 be used in a data model of a physical device.  Now suppose we want to
 model a device that supports multiple logical devices
-^I-D.ietf-rtgwg-device-model^, each of which has its own instantiation
+^I-D.ietf-rtgwg-lne-model^, each of which has its own instantiation
 of "ietf-interfaces", and possibly other modules, but, at the same
 time, we want to be able to manage all these logical devices from the
 master device.  Hence, we would like to have a schema like this:
@@ -105,6 +105,8 @@ phases of the data model life cycle:
 + Design-time: the mounted schema is defined along with the mount
   point in the parent module. In this case, the mounted schema has to
   be the same for every implementation of the parent module.
+  Augmentations to mounted modules that are supported by the
+  implementation also have to be supported within the mounted schema.
 
 + Implementation-time: the mounted schema is defined by a server
   implementor and is as stable as YANG library information, i.e.,
@@ -112,15 +114,22 @@ phases of the data model life cycle:
   rebooting the server. Also, a client can learn the entire schema
   together with YANG library data.
 
-+ Run-time: the mounted schema is defined by read-only instance data
++ Run-time: the mounted schema is defined by instance data
   that is part of the mounted data model. If there are multiple
   instances of the same mount point (e.g., in multiple entries of a
   list), the mounted data model may be different for each instance.
 
-The schema mount mechanism defined in this document supports only the
+The schema mount mechanism defined in this document focuses only on the
 latter two cases because design-time definition of the mounted schema
-doesn't play well with the existing YANG modularity mechanisms. For
-example, it would be impossible to augment the mounted data model.
+doesn't play well with the existing YANG modularity mechanisms.  These
+classifications are provided to facilitate the explanation of schema
+mount and are by definition oversimplifications.  Models that actually
+use schema mount may to fall under multiple classifications.  For
+example, a model may, at design-time, identify specific modules that
+must be present under a mount-point and also require that, at
+implementation-time, any augmentation supported by the implementation
+for one of the mounted modules must also be present under the mount
+point.
 
 Schema mount applies to the data model, and specifically does not
 assume anything about the source of instance data for the mounted
@@ -161,6 +170,9 @@ here:
 
 - system-controlled interface
 
+Tree diagrams in this document follow the definition provided in
+^RFC7223^ Section 1.2.
+
 ** Glossary of New Terms
 
 - mount point: container or list node whose definition contains
@@ -170,23 +182,8 @@ here:
   contains the mount point for the mounted schema.
 - top-level schema: a schema according to ^RFC7950^ in which schema
   trees of each module (except augments) start at the root node.
-
-** Tree Diagrams
-
- A simplified graphical representation of the data model is used in
- this document.  The meaning of the symbols in these diagrams is as
- follows:
-
-- Brackets "[" and "]" enclose list keys.
-- Abbreviations before data node names: "rw" means configuration
-  data (read-write) and "ro" state data (read-only).
-- Symbols after data node names: "?" means an optional node, "!"
-  means a presence container, and "*" denotes a list and
-  leaf-list.
-- Parentheses enclose choice and case nodes, and case nodes are
-  also marked with a colon (":").
-- Ellipsis ("...") stands for contents of subtrees that are not
-  shown.
+- inline schema: a mounted schema whose definition is provided as part
+  of the mounted data, using YANG library ^RFC7895^.
 
 ** Namespace Prefixes
 
@@ -209,7 +206,7 @@ associated with the corresponding YANG module, as shown in
 
 The schema mount mechanism defined in this document provides a new
 extensibility mechanism for use with YANG 1.1. In contrast to the
-existing mechanisms described in ^intro^, schema mount defines the
+existing mechanisms described in ^intro^, schema mount primarily defines the
 relationship between the source and target YANG modules outside these
 modules. The procedure consists of two separate steps that are
 described in the following subsections.
@@ -231,7 +228,7 @@ conditional by placing "if-feature" and/or "when" as substatements of
 the "container" or "list" statement that represents the mount point.
 
 The "mount-point" statement MUST NOT be used in a YANG version 1
-module.  Note however that YANG version 1 modules can be mounted under
+module.  Note however that any YANG version, including version 1, modules can be mounted under
 a mount point.
 
 ** Specification of the Mounted Schema
@@ -257,8 +254,10 @@ grouping and the grouping is used multiple times - then the
 corresponding "mount-point" entry applies equally to all such mount
 points.
 
-All provisions of YANG 1.1 specification ^RFC7950^ apply to mounted
-schemas except where explicitly noted otherwise.
+All provisions of YANG 1.1 specification ^RFC7950^ apply to a
+schema containing a mount point, and all provision of the YANG
+specification indicated in a mount mounted apply to the mounted module
+except where explicitly noted below:
 
 The "config" property of schema nodes is overriden and all nodes in
 the mounted schema are read-only ("config false") if at least one of
@@ -375,7 +374,7 @@ Each entry of the "schema" list contains
 - (optionally) a new "schema-mounts" specification that applies to
   mount points defined within the mounted schema.
 
-* Augment and Validation in Mounted Data
+* Augment, Validation and Parent References in Mounted Data
 
 A fundamental design principle of schema mount is that the mounted
 data model works exactly as a top-level data model, i.e., it is
@@ -506,14 +505,23 @@ The idea of having some way to combine schemas from different YANG
 modules into one has been proposed independently by several groups of
 people: Alexander Clemm, Jan Medved, and Eric Voit
 (^I-D.clemm-netmod-mount^); Ladislav Lhotka
-(^I-D.lhotka-netmod-ysdl^); and Lou Berger and Christian Hopps.
+(^I-D.lhotka-netmod-ysdl^); and Lou Berger and Christian Hopps. Contact
+information for contributors follows:
+
+   Lou Berger
+   LabN Consulting, L.L.C.
+   Email: lberger@labn.net
+
+   Christan Hopps
+   Deutsche Telekom
+   Email: chopps@chopps.org
 
 *! start-appendix
 
 * Example: Device Model with LNEs an NIs
 
 This non-normative example demonstrates an implementation of the device
-model as specified in ^I-D.ietf-rtgwg-device-model^, using both logical
+model as specified in ^I-D.ietf-rtgwg-device-model^ Section 2, using both logical
 network elements (LNE) and network instances (NI). The (physical) device
 may implement a data model described by this YANG library content:
 
@@ -570,6 +578,28 @@ resource using a request URI like this (all on one line):
   POST /restconf/data/ietf-network-instance:network-instances/
       network-instance=rtrA/root/ietf-isis:clear-adjacency HTTP/1.1
 
+* Open Issues
+
+[This section should be removed before publication]
+
++ Requiring use of schema mount module for inline type mount points.
+    From contributors discussion, Lada:
+    ...
+    I would propose to move the "schema-mount" extension to a separate
+    module and then use, as you suggested, the "inline" case for mount
+    points that do not have an entry in the "mount-point" list.
+
+    But then we probably don't need the explicit "inline" case under
+    "mount-point" at all: "mount-point" entries that are present would
+    use the "use-schema" case and those that are missing use the
+    "inline" case. This is already a nice simplification.
+
++ Recursion: does it require any specific support in the module or is
+  inclusion of the schema mount module as a mounted module supported
+  like any other module?
+
++ Filtering/limiting parent references, e.g., vrf-blue can only
+  references interfaces assigned to vrf-blue
 
 {{document:
     name ;
