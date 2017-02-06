@@ -448,6 +448,15 @@ of any mounted module, it MUST be represented as if the
 notification was connected to the mount point, see Section 7.16 of
 ^RFC7950^.
 
+* Recursive Schema
+
+It is permissible for a mount-point within a module to include
+itself or the Schema Mount module defined in this document.  This is
+the for mount-points that use inline or module-based schema
+representation.  The sole exception to this case is when parent
+references are used.  As described above, modules appearing in the
+parent-references list cannot also be mounted.
+
 * Implementation Notes
 
 Network management of devices that use a data model with schema mount
@@ -593,10 +602,6 @@ resource using a request URI like this (all on one line):
     "mount-point" at all: "mount-point" entries that are present would
     use the "use-schema" case and those that are missing use the
     "inline" case. This is already a nice simplification.
-
-+ Recursion: does it require any specific support in the module or is
-  inclusion of the schema mount module as a mounted module supported
-  like any other module?
 
 + Filtering/limiting parent references, e.g., vrf-blue can only
   references interfaces assigned to vrf-blue
