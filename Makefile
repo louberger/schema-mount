@@ -87,7 +87,7 @@ $(next).xml: $(draft).xml
 	$(kramdown-rfc2629) $< > $@
 
 %.xml: %.org
-	$(oxtradoc) -m outline-to-xml -n "$(basename $<)-latest" $< > $@
+	$(oxtradoc) -m outline-to-xml -n "$(basename $<)-latest" $< | sed 's/^<texttable/<texttable anchor="prefixtab"/'>  $@
 
 %.txt: %.xml
 	$(xml2rfc) $< -o $@ --text
